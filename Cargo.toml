@@ -1,0 +1,19 @@
+[package]
+name = "wanikani-mcp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"]}
+tokio = { version = "1.48", features = ["rt", "rt-multi-thread", "macros"] }
+tracing = "0.1"
+rmcp = { version = "0.11", features = [ "server", "macros", "client", "transport-io", "transport-streamable-http-server", "auth", "elicitation", "schemars" ] }
+wanisabi = { git = "https://github.com/jemsurfer/wanisabi", rev = "7ab7194a6acafb0a147dec00cb840532b8681762" }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+hyper = { version = "1" }
+hyper-util = { version = "0.1.19", features = ["server", "service"] }
+delegate = "0.13"
+wana_kana = "4"
