@@ -1,16 +1,14 @@
-mod lessons;
 mod mcp;
-mod reviews;
 mod subjects;
 mod user;
 
-use chrono::Utc;
-use chrono::DateTime;
-use crate::error::Error;
+use crate::Error;
+use ratelimit::Ratelimiter;
 use rmcp::handler::server::tool::ToolRouter;
 use rmcp::model::{ServerCapabilities, ServerInfo};
 use rmcp::{ServerHandler, tool_handler};
 use std::sync::Arc;
+use std::time::Duration;
 use wanisabi::client::Client;
 
 #[derive(Clone)]
@@ -19,50 +17,41 @@ pub struct WanikaniInner {
 }
 
 #[derive(Clone)]
-pub struct WanikaniUserInfo {
-    name: String,
-    level: i64,
-    started_at: DateTime<Utc>
-}
-
-#[derive(Clone)]
 pub struct Wanikani {
     inner: WanikaniInner,
-    user_info: WanikaniUserInfo,
     tool_router: ToolRouter<Self>,
 }
 
 impl Wanikani {
-    pub async fn new() -> Result<Self, Error> {
-        let api_token = std::env::var("WANIKANI_API_KEY")?;
-        let client = Client::new(api_token.to_string(), true, true).await?;
+    pub fn new_with_key(api_key: String) -> Result<Self, Error> {
+        let rate_limiter = Ratelimiter::builder(60, Duration::from_secs(60))
+            .max_tokens(60)
+            .initial_available(60)
+            .build()
+            .map_err(|e| Error::Internal(format!("Failed to create rate limiter: {}", e)))?;
 
-        let user = client.get_user_info().await?;
-
+        let client = Client {
+            key: api_key,
+            client: Default::default(),
+            rate_limiter: Some(rate_limiter),
+            pool: None,
+        };
 
         Ok(Self {
             inner: WanikaniInner {
                 client: Arc::new(client),
             },
             tool_router: Self::tool_router(),
-            user_info: WanikaniUserInfo {
-                name: user.data.username,
-                level: user.data.level,
-                started_at: user.data.started_at
-            },
         })
     }
 
     pub fn instructions(&self) -> String {
-        format!(
-            "{} (level={}, started_at={} provides interactions with wanikani, \
-            to look up kanji, radicals or vocabulary,\
-            current learning status and pending reviews. \
-            Also provides helper tools to retrieve unlearned kanji and vocabulary from given \
-            sentences or list of words.",
-            self.user_info.name,
-            self.user_info.level,
-            self.user_info.started_at
+        String::from(
+            "provides interactions with wanikani, \
+        to look up kanji, radicals or vocabulary,\
+        current learning status and pending reviews. \
+        Also provides helper tools to retrieve unlearned kanji and vocabulary from given \
+        sentences or list of words.",
         )
     }
 }
@@ -71,9 +60,7 @@ impl Wanikani {
 impl ServerHandler for Wanikani {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
+            capabilities: ServerCapabilities::builder().enable_tools().build(),
             instructions: Some(self.instructions()),
             ..Default::default()
         }

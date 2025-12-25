@@ -1,4 +1,4 @@
-use crate::result::Result;
+use crate::Result;
 use crate::wanikani::WanikaniInner;
 use rmcp::model::CallToolResult;
 use rmcp::model::Content;

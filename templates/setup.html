@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaniKani MCP Server</title>
+    <link rel="icon" type="image/png" href="https://www.wanikani.com/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-kanji: #FF00AA;
+            --color-kanji-dark: #DD0093;
+            --color-kanji-highlight: #F6C;
+            --color-kanji-lowlight: #CC0088;
+            --color-bg: #F4F4F4;
+            --color-surface: #FFFFFF;
+            --color-border: #E0E0E0;
+            --color-text: #333333;
+            --color-text-muted: #767676;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Fira Code', monospace;
+            background: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 0;
+            max-width: 800px;
+            width: 100%;
+            padding: 0;
+        }
+
+        .terminal-header {
+            background: var(--color-kanji);
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--color-kanji-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--color-kanji-dark);
+        }
+
+        .terminal-title {
+            margin-left: auto;
+            color: var(--color-surface);
+            font-size: 12px;
+        }
+
+        .content {
+            padding: 32px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        h1::before {
+            content: "$ ";
+            color: var(--color-kanji);
+        }
+
+        .subtitle {
+            color: var(--color-text-muted);
+            margin-bottom: 24px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge {
+            background: var(--color-kanji);
+            color: var(--color-surface);
+            padding: 2px 8px;
+            border-radius: 0;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .info-section {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .info-section h2 {
+            color: var(--color-text);
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .info-section h2::before {
+            content: "# ";
+            color: var(--color-kanji);
+        }
+
+        .info-section p,
+        .info-section ul {
+            color: var(--color-text-muted);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .info-section ul {
+            padding-left: 20px;
+            list-style: none;
+        }
+
+        .info-section li {
+            margin-bottom: 8px;
+        }
+
+        .info-section li::before {
+            content: "▸ ";
+            color: var(--color-kanji);
+            margin-right: 8px;
+        }
+
+        .info-section a {
+            color: var(--color-kanji);
+            text-decoration: none;
+        }
+
+        .info-section a:hover {
+            text-decoration: underline;
+        }
+
+        .code-block {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 0;
+            padding: 16px;
+            margin: 12px 0;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        .code-block code {
+            color: var(--color-text);
+            white-space: pre;
+        }
+
+        .comment {
+            color: var(--color-text-muted);
+        }
+
+        .tool-item {
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+
+        .tool-name {
+            color: var(--color-kanji);
+            font-weight: 700;
+        }
+
+        .note {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            padding: 12px 16px;
+            margin: 12px 0;
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+
+        .note::before {
+            content: "💡 ";
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="terminal-header">
+            <div class="terminal-dot"></div>
+            <div class="terminal-dot"></div>
+            <div class="terminal-dot"></div>
+            <div class="terminal-title">wanikani-mcp-server</div>
+        </div>
+
+        <div class="content">
+            <h1>wanikani-mcp</h1>
+            <div class="subtitle">
+                <span>model context protocol server for wanikani</span>
+                <span class="badge">unofficial</span>
+            </div>
+
+            <div class="info-section">
+                <h2>what is this?</h2>
+                <p>
+                    this is an <a href="https://modelcontextprotocol.io" target="_blank">MCP (Model Context Protocol)</a> server that provides Claude with access to your
+                    <a href="https://www.wanikani.com" target="_blank">WaniKani</a> data for japanese kanji and vocabulary learning.
+                </p>
+                <p style="margin-top: 12px;">
+                    <strong>note:</strong> this is an unofficial implementation and is not affiliated with WaniKani or Tofugu.
+                </p>
+            </div>
+
+            <div class="info-section">
+                <h2>available tools</h2>
+                {% for tool in tools %}
+                <div class="tool-item">
+                    ⏺ <span class="tool-name">{{ tool.name }}</span> {{ tool.description }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="info-section">
+                <h2>setup instructions</h2>
+                <p>option 1: use the publicly hosted server (easiest)</p>
+                <div class="code-block"><code>{
+  "mcpServers": {
+    "wanikani": {
+      "url": "{{ public_address }}/mcp/sse",
+      "transport": {
+        "type": "sse"
+      }
+    }
+  }
+}</code></div>
+
+                <p class="comment" style="margin-top: 20px;">option 2: run your own server (recommended)</p>
+                <div class="code-block"><code>{
+  "mcpServers": {
+    "wanikani": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "ghcr.io/srevinsaju/wanikani-mcp:main",
+        "--mode",
+        "stdio",
+        "--api-key",
+        "YOUR_WANIKANI_API_KEY"
+      ]
+    }
+  }
+}</code></div>
+                <div class="note">requires docker. get your api key from <a href="https://www.wanikani.com/settings/personal_access_tokens" target="_blank">wanikani settings</a></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

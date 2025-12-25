@@ -1,20 +1,19 @@
-use std::collections::HashMap;
-use crate::error::Error;
-use crate::result::Result;
+use crate::Error;
+use crate::Result;
 use crate::wanikani::WanikaniInner;
 use rmcp::model::CallToolResult;
 use rmcp::model::Content;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use wana_kana::IsJapaneseChar;
 use wanisabi::model::subject::Subject;
 use wanisabi::wrapper::subject::SubjectFilter;
-use wana_kana::IsJapaneseChar;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LearntKanjiItem {
     pub character: String,
     pub level: i64,
-    pub radicals: Vec<String>
+    pub radicals: Vec<String>,
 }
 
 impl From<LearntKanjiItem> for Content {
@@ -26,15 +25,7 @@ impl From<LearntKanjiItem> for Content {
 impl WanikaniInner {
     pub async fn get_subject(&self, subject_id: i64) -> Result<CallToolResult> {
         let subject = self.client.get_subject(subject_id).await?;
-
-        if let Subject::Kanji(kanji) = &subject.data {
-            return Ok(CallToolResult::success(vec![Content::json(&subject)?]));
-        }
-
-        Err(Error::NotFound(format!(
-            "Kanji with subject id '{}' not found",
-            subject_id
-        )))
+        Ok(CallToolResult::success(vec![Content::json(&subject)?]))
     }
 
     pub async fn get_kanji_by_character(&self, characters: Vec<String>) -> Result<CallToolResult> {
@@ -104,8 +95,6 @@ impl WanikaniInner {
         let user = self.client.get_user_info().await?;
         let user_level = user.data.level;
 
-
-
         let kanji_subjects = self
             .client
             .get_subjects_filtered(vec![
@@ -115,13 +104,18 @@ impl WanikaniInner {
             ])
             .await?;
 
-        let radicals_used_in_kanji = kanji_subjects.data.iter().filter_map(|subject| {
-            if let Subject::Kanji(kanji) = &subject.data {
-                Some(kanji.amalgamation_subject_ids.clone())
-            } else {
-                None
-            }
-        }).flatten().collect::<Vec<i64>>();
+        let radicals_used_in_kanji = kanji_subjects
+            .data
+            .iter()
+            .filter_map(|subject| {
+                if let Subject::Kanji(kanji) = &subject.data {
+                    Some(kanji.amalgamation_subject_ids.clone())
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect::<Vec<i64>>();
 
         let radicals: HashMap<i64, Vec<String>> = {
             let radical_subjects = self
@@ -134,7 +128,10 @@ impl WanikaniInner {
             let mut map = HashMap::new();
             for subject in radical_subjects.data {
                 if let Subject::Radical(radical) = &subject.data {
-                    map.insert(subject.id, radical.meanings.iter().map(|m| m.meaning.clone()).collect());
+                    map.insert(
+                        subject.id,
+                        radical.meanings.iter().map(|m| m.meaning.clone()).collect(),
+                    );
                 }
             }
             map
@@ -147,7 +144,13 @@ impl WanikaniInner {
                 found_subjects.push(LearntKanjiItem {
                     character: kanji.characters.clone(),
                     level: kanji.level,
-                    radicals: kanji.amalgamation_subject_ids.iter().filter_map(|id| radicals.get(id)).flatten().cloned().collect(),
+                    radicals: kanji
+                        .amalgamation_subject_ids
+                        .iter()
+                        .filter_map(|id| radicals.get(id))
+                        .flatten()
+                        .cloned()
+                        .collect(),
                 });
             }
         }

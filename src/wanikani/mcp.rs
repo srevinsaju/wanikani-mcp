@@ -16,7 +16,6 @@ pub struct SubjectRequest {
     pub subject_id: i64,
 }
 
-
 #[derive(Debug, Clone, Deserialize, schemars::JsonSchema)]
 pub struct VocabularyRequest {
     #[schemars(description = "vocabulary phrase or slug to look up")]
@@ -42,18 +41,19 @@ impl Wanikani {
         self.inner.get_level_info().await.map_err(Into::into)
     }
 
-    #[tool(description = "Get subject by its subject id. A subject is a i64 identifier which can be used for kanji, radicals or vocabulary")]
+    #[tool(
+        description = "Get subject by its subject id. A subject is a i64 identifier which can be used for kanji, radicals or vocabulary"
+    )]
     async fn get_subject_by_id(
         &self,
         Parameters(SubjectRequest { subject_id }): Parameters<SubjectRequest>,
     ) -> Result<CallToolResult, McpError> {
-        self.inner
-            .get_subject(subject_id)
-            .await
-            .map_err(Into::into)
+        self.inner.get_subject(subject_id).await.map_err(Into::into)
     }
 
-    #[tool(description = "Get multiple kanji subjects by its characters. Returns the level, onyomi, kunyomi, reading mnemonic and meaning mnemonics, and radicals that compose the kanji")]
+    #[tool(
+        description = "Get multiple kanji subjects by its characters. Returns the level, onyomi, kunyomi, reading mnemonic and meaning mnemonics, and radicals that compose the kanji"
+    )]
     async fn get_kanji_by_character(
         &self,
         Parameters(KanjiByCharacterRequest { characters }): Parameters<KanjiByCharacterRequest>,
@@ -64,7 +64,9 @@ impl Wanikani {
             .map_err(Into::into)
     }
 
-    #[tool(description = "Get vocabulary subject by its phrase. Returns the readings, meaning mnemonics and example sentences, and kanji subject IDs that compose the vocabulary")]
+    #[tool(
+        description = "Get vocabulary subject by its phrase. Returns the readings, meaning mnemonics and example sentences, and kanji subject IDs that compose the vocabulary"
+    )]
     async fn get_vocabulary_by_phrase(
         &self,
         Parameters(VocabularyRequest { phrase }): Parameters<VocabularyRequest>,
@@ -75,7 +77,9 @@ impl Wanikani {
             .map_err(Into::into)
     }
 
-    #[tool(description = "Find new kanji and their wanikani levels from a given sentence that the user has not learned yet")]
+    #[tool(
+        description = "Find new kanji and their wanikani levels from a given sentence that the user has not learned yet"
+    )]
     async fn find_new_kanji_from_sentence(
         &self,
         Parameters(SentenceRequest { sentence }): Parameters<SentenceRequest>,
@@ -86,7 +90,9 @@ impl Wanikani {
             .map_err(Into::into)
     }
 
-    #[tool(description = "Find new vocabulary and their wanikani levels from a list of words/phrases that the user has not learned yet")]
+    #[tool(
+        description = "Find new vocabulary and their wanikani levels from a list of words/phrases that the user has not learned yet"
+    )]
     async fn find_new_vocabulary(
         &self,
         Parameters(VocabularyListRequest { phrases }): Parameters<VocabularyListRequest>,

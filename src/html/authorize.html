@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorize WaniKani MCP Access</title>
+    <link rel="icon" type="image/png" href="https://www.wanikani.com/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-kanji: #FF00AA;
+            --color-kanji-dark: #DD0093;
+            --color-kanji-highlight: #F6C;
+            --color-kanji-lowlight: #CC0088;
+            --color-bg: #F4F4F4;
+            --color-surface: #FFFFFF;
+            --color-border: #E0E0E0;
+            --color-text: #333333;
+            --color-text-muted: #767676;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Fira Code', monospace;
+            background: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 0;
+            max-width: 520px;
+            width: 100%;
+            padding: 0;
+        }
+
+        .terminal-header {
+            background: var(--color-kanji);
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--color-kanji-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--color-kanji-dark);
+        }
+
+        .terminal-title {
+            margin-left: auto;
+            color: var(--color-surface);
+            font-size: 12px;
+        }
+
+        .content {
+            padding: 32px;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        h1::before {
+            content: "⚡ ";
+        }
+
+        .subtitle {
+            color: var(--color-text-muted);
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+
+        .client-info {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .client-info p {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+        }
+
+        .client-info code {
+            color: var(--color-kanji);
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--color-text-muted);
+        }
+
+        .info-box::before {
+            content: "ℹ ";
+            color: var(--color-kanji);
+            margin-right: 4px;
+        }
+
+        .info-box a {
+            color: var(--color-kanji);
+            text-decoration: none;
+        }
+
+        .info-box a:hover {
+            text-decoration: underline;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--color-text);
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        label::before {
+            content: "> ";
+            color: var(--color-kanji);
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 0;
+            font-size: 13px;
+            font-family: 'Fira Code', monospace;
+            color: var(--color-text);
+            margin-bottom: 24px;
+            transition: border-color 0.2s;
+        }
+
+        input[type="password"]:focus {
+            outline: none;
+            border-color: var(--color-kanji);
+        }
+
+        input::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px 24px;
+            background: var(--color-kanji);
+            color: var(--color-surface);
+            border: none;
+            border-radius: 0;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Fira Code', monospace;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: var(--color-kanji-dark);
+        }
+
+        button:disabled {
+            background: var(--color-text-muted);
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--color-surface);
+            border-radius: 50%;
+            border-top-color: var(--color-kanji-dark);
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .success-state {
+            text-align: center;
+            padding: 24px 0;
+        }
+
+        .success-state h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: var(--color-text);
+        }
+
+        .success-state h2::before {
+            content: "✓ ";
+        }
+
+        .success-state p {
+            color: var(--color-text-muted);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .success-state .client-name {
+            color: var(--color-kanji);
+            font-weight: 500;
+        }
+
+        .success-state .redirect-notice {
+            margin-top: 16px;
+            padding: 12px;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0;
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="terminal-header">
+            <div class="terminal-dot"></div>
+            <div class="terminal-dot"></div>
+            <div class="terminal-dot"></div>
+            <div class="terminal-title">oauth-authorize</div>
+        </div>
+
+        <div class="content">
+            <div id="authForm">
+                <h1>authorize mcp access</h1>
+                <p class="subtitle">authenticate your wanikani account</p>
+
+                <div class="client-info">
+                    <p><strong>client:</strong> <code>{{client_id}}</code></p>
+                    <p style="margin-bottom: 0;"><strong>scope:</strong> <code>{{scope}}</code></p>
+                </div>
+
+                <div class="info-box">
+                    get your wanikani api key from <a href="https://www.wanikani.com/settings/personal_access_tokens" target="_blank">your settings</a>
+                </div>
+
+                <form method="POST" id="authorizationForm">
+                    <label for="api_key">wanikani api key *</label>
+                    <input type="password" id="api_key" name="api_key" placeholder="paste your api key here" required>
+
+                    <input type="hidden" name="response_type" value="{{response_type}}">
+                    <input type="hidden" name="client_id" value="{{client_id}}">
+                    <input type="hidden" name="redirect_uri" value="{{redirect_uri}}">
+                    <input type="hidden" name="state" value="{{state}}">
+                    <input type="hidden" name="code_challenge" value="{{code_challenge}}">
+                    <input type="hidden" name="code_challenge_method" value="{{code_challenge_method}}">
+                    <input type="hidden" name="scope" value="{{scope}}">
+                    <input type="hidden" name="resource" value="{{resource}}">
+
+                    <button type="submit" id="submitBtn">authorize</button>
+                </form>
+            </div>
+
+            <div id="successState" class="success-state hidden">
+                <h2>authorization successful</h2>
+                <p>you may now open <span class="client-name">{{client_id}}</span></p>
+                <div class="redirect-notice">
+                    <span class="spinner"></span>
+                    redirecting...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('authorizationForm');
+        const authFormDiv = document.getElementById('authForm');
+        const successStateDiv = document.getElementById('successState');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', function(e) {
+            // show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>authorizing...';
+        });
+
+        // check if we're being redirected (form was submitted successfully)
+        // this happens when the server redirects back after successful authorization
+        if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
+            // show success state
+            authFormDiv.classList.add('hidden');
+            successStateDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
