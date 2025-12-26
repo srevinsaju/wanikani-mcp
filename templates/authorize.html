@@ -267,8 +267,8 @@
                 <p class="subtitle">authenticate your wanikani account</p>
 
                 <div class="client-info">
-                    <p><strong>client:</strong> <code>{{client_id}}</code></p>
-                    <p style="margin-bottom: 0;"><strong>scope:</strong> <code>{{scope}}</code></p>
+                    <p><strong>client:</strong> <code>{{ client_id }}</code></p>
+                    <p style="margin-bottom: 0;"><strong>scope:</strong> <code>{{ scope | default(value="") }}</code></p>
                 </div>
 
                 <div class="info-box">
@@ -279,14 +279,14 @@
                     <label for="api_key">wanikani api key *</label>
                     <input type="password" id="api_key" name="api_key" placeholder="paste your api key here" required>
 
-                    <input type="hidden" name="response_type" value="{{response_type}}">
-                    <input type="hidden" name="client_id" value="{{client_id}}">
-                    <input type="hidden" name="redirect_uri" value="{{redirect_uri}}">
-                    <input type="hidden" name="state" value="{{state}}">
-                    <input type="hidden" name="code_challenge" value="{{code_challenge}}">
-                    <input type="hidden" name="code_challenge_method" value="{{code_challenge_method}}">
-                    <input type="hidden" name="scope" value="{{scope}}">
-                    <input type="hidden" name="resource" value="{{resource}}">
+                    <input type="hidden" name="response_type" value="{{ response_type }}">
+                    <input type="hidden" name="client_id" value="{{ client_id }}">
+                    <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
+                    <input type="hidden" name="state" value="{{ state | default(value="") }}">
+                    <input type="hidden" name="code_challenge" value="{{ code_challenge | default(value="") }}">
+                    <input type="hidden" name="code_challenge_method" value="{{ code_challenge_method | default(value="") }}">
+                    <input type="hidden" name="scope" value="{{ scope | default(value="") }}">
+                    <input type="hidden" name="resource" value="{{ resource | default(value="") }}">
 
                     <button type="submit" id="submitBtn">authorize</button>
                 </form>
@@ -294,7 +294,7 @@
 
             <div id="successState" class="success-state hidden">
                 <h2>authorization successful</h2>
-                <p>you may now open <span class="client-name">{{client_id}}</span></p>
+                <p>you may now open <span class="client-name">{{ client_id }}</span></p>
                 <div class="redirect-notice">
                     <span class="spinner"></span>
                     redirecting...
@@ -310,15 +310,11 @@
         const submitBtn = document.getElementById('submitBtn');
 
         form.addEventListener('submit', function(e) {
-            // show loading state
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner"></span>authorizing...';
         });
 
-        // check if we're being redirected (form was submitted successfully)
-        // this happens when the server redirects back after successful authorization
         if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
-            // show success state
             authFormDiv.classList.add('hidden');
             successStateDiv.classList.remove('hidden');
         }

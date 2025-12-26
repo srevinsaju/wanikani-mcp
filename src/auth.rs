@@ -144,6 +144,19 @@ struct SetupPageTemplate {
     public_address: String,
 }
 
+#[derive(Template)]
+#[template(path = "authorize.html")]
+struct AuthorizePageTemplate {
+    client_id: String,
+    response_type: String,
+    redirect_uri: String,
+    state: Option<String>,
+    code_challenge: Option<String>,
+    code_challenge_method: Option<String>,
+    scope: Option<String>,
+    resource: Option<String>,
+}
+
 struct ToolInfo {
     name: String,
     description: String,
@@ -185,28 +198,18 @@ pub async fn authorize_get(
             .into_response();
     }
 
-    let html = include_str!("html/authorize.html")
-        .replace("{{client_id}}", &params.client_id)
-        .replace("{{response_type}}", &params.response_type)
-        .replace("{{redirect_uri}}", &params.redirect_uri)
-        .replace("{{state}}", params.state.as_deref().unwrap_or(""))
-        .replace(
-            "{{code_challenge}}",
-            params.code_challenge.as_deref().unwrap_or(""),
-        )
-        .replace(
-            "{{code_challenge_method}}",
-            params.code_challenge_method.as_deref().unwrap_or(""),
-        )
-        .replace("{{scope}}", params.scope.as_deref().unwrap_or(""))
-        .replace("{{resource}}", params.resource.as_deref().unwrap_or(""));
+    let template = AuthorizePageTemplate {
+        client_id: params.client_id,
+        response_type: params.response_type,
+        redirect_uri: params.redirect_uri,
+        state: params.state,
+        code_challenge: params.code_challenge,
+        code_challenge_method: params.code_challenge_method,
+        scope: params.scope,
+        resource: params.resource,
+    };
 
-    (
-        StatusCode::OK,
-        [(axum::http::header::CONTENT_TYPE, "text/html")],
-        html,
-    )
-        .into_response()
+    (StatusCode::OK, askama_web::WebTemplate(template)).into_response()
 }
 
 pub async fn authorize_post(

@@ -83,11 +83,7 @@ async fn run_sse(args: Args) -> anyhow::Result<()> {
     let jwt_secret = args.jwt_secret.unwrap_or_else(|| {
         let secret = uuid::Uuid::new_v4().to_string();
         tracing::warn!(
-            "no jwt_secret provided, generated random secret: {}",
-            secret
-        );
-        tracing::warn!(
-            "tokens will be invalidated on restart. set JWT_SECRET env var for persistence."
+            "no jwt_secret provided; generated an ephemeral secret. tokens will be invalidated on restart. set JWT_SECRET env var for persistence."
         );
         secret
     });
