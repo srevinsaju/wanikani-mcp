@@ -1,3 +1,8 @@
+use aes_gcm::{
+    Aes256Gcm, Nonce,
+    aead::{Aead, KeyInit, Payload, rand_core::RngCore},
+};
+use anyhow::Result as AnyhowResult;
 use askama::Template;
 use axum::{
     Form, Json, Router,
@@ -11,6 +16,7 @@ use base64::Engine;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use rmcp::transport::auth::AuthorizationMetadata;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use std::{
     collections::HashMap,
     sync::Arc,
@@ -47,10 +53,15 @@ pub struct AuthCodeRecord {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
     pub sub: String,
-    pub api_key: String,
+    pub api_key_ciphertext: String,
+    pub nonce: String,
     pub exp: u64,
     pub iat: u64,
+    pub ver: u8,
 }
+
+const TOKEN_VERSION: u8 = 1;
+const TOKEN_AAD: &[u8] = b"wanikani-mcp-aead-v1";
 
 impl ClientStore {
     pub fn new(public_address: Url, jwt_secret: String, token_expiration: u64) -> Self {
@@ -69,6 +80,56 @@ fn current_timestamp() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs()
+}
+
+fn derive_aead_key(secret: &str) -> [u8; 32] {
+    let digest = sha2::Sha256::digest(secret.as_bytes());
+    digest.into()
+}
+
+fn encrypt_api_key(api_key: &str, secret: &str) -> AnyhowResult<(String, String)> {
+    let key = derive_aead_key(secret);
+    let cipher = Aes256Gcm::new_from_slice(&key)?;
+
+    let mut nonce_bytes = [0u8; 12];
+    aes_gcm::aead::rand_core::OsRng.fill_bytes(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    let ciphertext = cipher.encrypt(
+        nonce,
+        Payload {
+            msg: api_key.as_bytes(),
+            aad: TOKEN_AAD,
+        },
+    )?;
+
+    Ok((
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(ciphertext),
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(nonce_bytes),
+    ))
+}
+
+fn decrypt_api_key(ciphertext_b64: &str, nonce_b64: &str, secret: &str) -> AnyhowResult<String> {
+    let key = derive_aead_key(secret);
+    let cipher = Aes256Gcm::new_from_slice(&key)?;
+
+    let nonce_bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(nonce_b64)?;
+    let nonce_array: [u8; 12] = nonce_bytes
+        .as_slice()
+        .try_into()
+        .map_err(|_| aes_gcm::Error)?;
+    let nonce = Nonce::from_slice(&nonce_array);
+
+    let ciphertext = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(ciphertext_b64)?;
+    let plaintext = cipher.decrypt(
+        nonce,
+        Payload {
+            msg: ciphertext.as_ref(),
+            aad: TOKEN_AAD,
+        },
+    )?;
+
+    Ok(String::from_utf8(plaintext)?)
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -150,11 +211,11 @@ struct AuthorizePageTemplate {
     client_id: String,
     response_type: String,
     redirect_uri: String,
-    state: Option<String>,
-    code_challenge: Option<String>,
-    code_challenge_method: Option<String>,
-    scope: Option<String>,
-    resource: Option<String>,
+    state: String,
+    code_challenge: String,
+    code_challenge_method: String,
+    scope: String,
+    resource: String,
 }
 
 struct ToolInfo {
@@ -202,11 +263,11 @@ pub async fn authorize_get(
         client_id: params.client_id,
         response_type: params.response_type,
         redirect_uri: params.redirect_uri,
-        state: params.state,
-        code_challenge: params.code_challenge,
-        code_challenge_method: params.code_challenge_method,
-        scope: params.scope,
-        resource: params.resource,
+        state: params.state.unwrap_or_default(),
+        code_challenge: params.code_challenge.unwrap_or_default(),
+        code_challenge_method: params.code_challenge_method.unwrap_or_default(),
+        scope: params.scope.unwrap_or_default(),
+        resource: params.resource.unwrap_or_default(),
     };
 
     (StatusCode::OK, askama_web::WebTemplate(template)).into_response()
@@ -404,11 +465,28 @@ pub async fn get_token(
     drop(clients);
 
     let now = current_timestamp();
+    let (api_key_ciphertext, nonce) = match encrypt_api_key(&api_key, &store.jwt_secret) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::error!("failed to encrypt api key: {:?}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "server_error",
+                    "error_description": "failed to generate token"
+                })),
+            )
+                .into_response();
+        }
+    };
+
     let claims = TokenClaims {
         sub: req.client_id.clone(),
-        api_key,
+        api_key_ciphertext,
+        nonce,
         exp: now + store.token_expiration,
         iat: now,
+        ver: TOKEN_VERSION,
     };
 
     let access_token = match encode(
@@ -480,7 +558,24 @@ pub fn make_validate_token_middleware(
                 }
             };
 
-            let api_key = claims.api_key;
+            if claims.ver != TOKEN_VERSION {
+                tracing::debug!(
+                    "token version mismatch: expected {}, got {}",
+                    TOKEN_VERSION,
+                    claims.ver
+                );
+                return unauthorized();
+            }
+
+            let api_key =
+                match decrypt_api_key(&claims.api_key_ciphertext, &claims.nonce, &store.jwt_secret)
+                {
+                    Ok(k) => k,
+                    Err(e) => {
+                        tracing::debug!("failed to decrypt api key from token: {:?}", e);
+                        return unauthorized();
+                    }
+                };
 
             CURRENT_API_KEY
                 .scope(api_key, async move { next.run(request).await })
