@@ -1,6 +1,7 @@
 # wanikani-mcp
 [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) server for [wanikani](https://www.wanikani.com/).
 
+![img.png](docs/img.png)
 
 ## Setup
 Get your API key from https://www.wanikani.com/settings/personal_access_tokens.
