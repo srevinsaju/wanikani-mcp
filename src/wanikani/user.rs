@@ -1,7 +1,7 @@
 use crate::Result;
 use crate::wanikani::WanikaniInner;
 use rmcp::model::CallToolResult;
-use rmcp::model::Content;
+use rmcp::model::ContentBlock;
 
 impl WanikaniInner {
     pub async fn get_level_info(&self) -> Result<CallToolResult> {
@@ -9,7 +9,7 @@ impl WanikaniInner {
 
         let level = user.data.level;
 
-        Ok(CallToolResult::success(vec![Content::text(format!(
+        Ok(CallToolResult::success(vec![ContentBlock::text(format!(
             "Current level: {}",
             level
         ))]))

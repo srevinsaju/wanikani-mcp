@@ -2,7 +2,7 @@ use crate::Error;
 use crate::Result;
 use crate::wanikani::WanikaniInner;
 use rmcp::model::CallToolResult;
-use rmcp::model::Content;
+use rmcp::model::ContentBlock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use wana_kana::IsJapaneseChar;
@@ -16,16 +16,16 @@ pub struct LearntKanjiItem {
     pub radicals: Vec<String>,
 }
 
-impl From<LearntKanjiItem> for Content {
+impl From<LearntKanjiItem> for ContentBlock {
     fn from(item: LearntKanjiItem) -> Self {
-        Content::json(item).unwrap()
+        ContentBlock::json(item).unwrap()
     }
 }
 
 impl WanikaniInner {
     pub async fn get_subject(&self, subject_id: i64) -> Result<CallToolResult> {
         let subject = self.client.get_subject(subject_id).await?;
-        Ok(CallToolResult::success(vec![Content::json(&subject)?]))
+        Ok(CallToolResult::success(vec![ContentBlock::json(&subject)?]))
     }
 
     pub async fn get_kanji_by_character(&self, characters: Vec<String>) -> Result<CallToolResult> {
@@ -43,7 +43,7 @@ impl WanikaniInner {
             if let Subject::Kanji(kanji) = &subject.data
                 && characters.contains(&kanji.characters)
             {
-                results.push(Content::json(&subject)?);
+                results.push(ContentBlock::json(&subject)?);
             }
         }
         if !results.is_empty() {
@@ -68,7 +68,7 @@ impl WanikaniInner {
             if let Subject::Vocabulary(vocab) = &subject.data
                 && vocab.slug == phrase
             {
-                return Ok(CallToolResult::success(vec![Content::json(&subject)?]));
+                return Ok(CallToolResult::success(vec![ContentBlock::json(&subject)?]));
             }
         }
         Err(Error::NotFound(format!(
@@ -186,7 +186,7 @@ impl WanikaniInner {
             if let Subject::Vocabulary(vocab) = &subject.data
                 && phrases.contains(&vocab.slug)
             {
-                found_subjects.push(Content::json(&subject)?);
+                found_subjects.push(ContentBlock::json(&subject)?);
             }
         }
 
