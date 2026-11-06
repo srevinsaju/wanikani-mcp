@@ -605,25 +605,20 @@ pub async fn oauth_authorization_server(
             serde_json::json!(["authorization_code"]),
         ),
         (
-            "code_challenge_methods_supported".to_string(),
-            serde_json::json!(["S256", "plain"]),
-        ),
-        (
             "token_endpoint_auth_methods_supported".to_string(),
             serde_json::json!(["none"]),
         ),
     ]);
 
-    let metadata = AuthorizationMetadata {
-        authorization_endpoint: base_url.join("authorize").unwrap().to_string(),
-        token_endpoint: base_url.join("token").unwrap().to_string(),
-        registration_endpoint: Some(base_url.join("register").unwrap().to_string()),
-        issuer: Some(base_url.as_str().trim_end_matches('/').to_string()),
-        jwks_uri: None,
-        scopes_supported: Some(vec!["profile".to_string(), "email".to_string()]),
-        response_types_supported: Some(vec!["code".to_string()]),
-        additional_fields,
-    };
+    let mut metadata = AuthorizationMetadata::default();
+    metadata.authorization_endpoint = base_url.join("authorize").unwrap().to_string();
+    metadata.token_endpoint = base_url.join("token").unwrap().to_string();
+    metadata.registration_endpoint = Some(base_url.join("register").unwrap().to_string());
+    metadata.issuer = Some(base_url.as_str().trim_end_matches('/').to_string());
+    metadata.scopes_supported = Some(vec!["profile".to_string(), "email".to_string()]);
+    metadata.response_types_supported = Some(vec!["code".to_string()]);
+    metadata.code_challenge_methods_supported = Some(vec!["S256".to_string(), "plain".to_string()]);
+    metadata.additional_fields = additional_fields;
     (StatusCode::OK, Json(metadata))
 }
 
