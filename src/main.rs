@@ -1,26 +1,16 @@
 mod auth;
 mod error;
 pub use error::Error;
+mod http;
 mod result;
 pub use result::Result;
 mod wanikani;
 
-use auth::ClientStore;
-use axum::{Router, http::StatusCode, middleware, response::IntoResponse, routing::get};
+use auth::{Auth, VaultKey};
 use clap::Parser;
-use rmcp::{
-    ServiceExt,
-    transport::{
-        StreamableHttpServerConfig, stdio,
-        streamable_http_server::{
-            session::local::LocalSessionManager, tower::StreamableHttpService,
-        },
-    },
-};
-use std::{net::SocketAddr, sync::Arc};
+use rmcp::{ServiceExt, transport::stdio};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use strum_macros::{Display, EnumString};
-use tokio::task_local;
-use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use url::Url;
 use wanikani::Wanikani;
@@ -47,19 +37,19 @@ struct Args {
     #[arg(long, env = "PUBLIC_ADDRESS", default_value = "http://127.0.0.1:3000")]
     public_address: Url,
 
-    #[arg(long, env = "JWT_SECRET")]
-    jwt_secret: Option<String>,
+    /// The SQLite database holding OAuth clients, grants and the sealed
+    /// WaniKani API keys, such as `sqlite:///data/wanikani-mcp.db`.
+    #[arg(long, env = "DATABASE", default_value = "sqlite://wanikani-mcp.db")]
+    database: String,
 
+    /// The key WaniKani API keys are sealed with at rest: 32 bytes in
+    /// standard base64 (`openssl rand -base64 32`). Required in sse mode.
+    #[arg(long, env = "VAULT_KEY", hide_env_values = true)]
+    vault_key: Option<VaultKey>,
+
+    /// Access token lifetime in seconds. Refresh tokens rotate on use.
     #[arg(long, env = "TOKEN_EXPIRATION", default_value = "3600")]
     token_expiration: u64,
-}
-
-task_local! {
-    static CURRENT_API_KEY: String;
-}
-
-async fn not_found() -> impl IntoResponse {
-    (StatusCode::NOT_FOUND,).into_response()
 }
 
 async fn run_stdio(api_key: String) -> anyhow::Result<()> {
@@ -80,53 +70,26 @@ async fn run_stdio(api_key: String) -> anyhow::Result<()> {
 async fn run_sse(args: Args) -> anyhow::Result<()> {
     tracing::info!("starting mcp server in sse mode");
 
-    let jwt_secret = args.jwt_secret.unwrap_or_else(|| {
-        let secret = uuid::Uuid::new_v4().to_string();
-        tracing::warn!(
-            "no jwt_secret provided; generated an ephemeral secret. tokens will be invalidated on restart. set JWT_SECRET env var for persistence."
-        );
-        secret
-    });
+    let vault_key = args.vault_key.ok_or_else(|| {
+        anyhow::anyhow!("vault key required for sse mode (use --vault-key or VAULT_KEY env var)")
+    })?;
+    let issuer = args.public_address.as_str().trim_end_matches('/');
+    // `oauth-as` matches the resource exactly, so it is spelled one way only.
+    let resource = format!("{issuer}/mcp");
+    let auth = Arc::new(
+        Auth::open(
+            issuer,
+            &resource,
+            &args.database,
+            vault_key,
+            Duration::from_secs(args.token_expiration),
+        )
+        .await?,
+    );
+    auth.spawn_sweeper();
+    let app = http::router(issuer, &resource, auth)?;
 
-    let client_store = Arc::new(ClientStore::new(
-        args.public_address,
-        jwt_secret,
-        args.token_expiration,
-    ));
     let addr = args.bind_address.parse::<SocketAddr>()?;
-
-    let mcp_service: StreamableHttpService<Wanikani, LocalSessionManager> =
-        StreamableHttpService::new(
-            || {
-                let api_key = CURRENT_API_KEY
-                    .try_with(|k| k.clone())
-                    .map_err(|_| std::io::Error::other("missing API key"))?;
-                Wanikani::new_with_key(api_key).map_err(|e| {
-                    tracing::error!("failed to create wanikani service: {:?}", e);
-                    std::io::Error::other(e)
-                })
-            },
-            LocalSessionManager::default().into(),
-            StreamableHttpServerConfig::default(),
-        );
-
-    let cors_layer = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
-
-    let protected_mcp_router = Router::new()
-        .nest_service("/mcp", mcp_service)
-        .layer(middleware::from_fn(auth::make_validate_token_middleware(
-            client_store.clone(),
-        )))
-        .layer(cors_layer.clone());
-
-    let app = Router::new()
-        .merge(auth::router(cors_layer, client_store))
-        .merge(protected_mcp_router)
-        .fallback(get(not_found));
-
     tracing::info!("mcp server started on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await?;
 
