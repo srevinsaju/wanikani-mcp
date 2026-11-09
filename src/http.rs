@@ -4,6 +4,11 @@
 //! Every `/mcp` request needs a bearer token our authorization server issued
 //! for the `/mcp` resource. Its subject is a vault connection, whose WaniKani
 //! API key the MCP service is built with ([`Wanikani::new_with_key`]).
+//!
+//! `/mcp` is stateless: rmcp builds a [`Wanikani`] for every request from
+//! that request's token, and issues no `Mcp-Session-Id`. A session would
+//! keep the API key of the token that opened it, and serve it to any other
+//! signed-in user presenting the session id.
 
 use std::sync::Arc;
 
@@ -16,18 +21,18 @@ use axum::middleware::{Next, from_fn_with_state};
 use axum::response::{Html, IntoResponse, Json, Response};
 use axum::routing::get;
 use oauth_as::resource_metadata::{ProtectedResourceConfig, ProtectedResourceMetadata};
-use rmcp::transport::StreamableHttpServerConfig;
-use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
-use rmcp::transport::streamable_http_server::tower::StreamableHttpService;
+use rmcp::transport::streamable_http_server::session::never::NeverSessionManager;
+use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
 use tokio::task_local;
 use tower_http::cors::{Any, CorsLayer};
+use url::Url;
 
 use crate::auth::{Auth, ConnectionId, VaultError};
 use crate::wanikani::Wanikani;
 
 task_local! {
     /// The WaniKani API key of the `/mcp` request being served, read when
-    /// the MCP service for a new session is built.
+    /// rmcp builds the MCP service for that request.
     static CURRENT_API_KEY: String;
 }
 
@@ -65,15 +70,23 @@ pub fn router(issuer: &str, resource: &str, auth: Arc<Auth>) -> anyhow::Result<R
         resource: resource.into(),
         metadata_url: format!("{issuer}{metadata_path}").into(),
     };
-    let service: StreamableHttpService<Wanikani, LocalSessionManager> = StreamableHttpService::new(
+    // rmcp only accepts loopback `Host`s unless told the public one.
+    let public_host = Url::parse(issuer)?
+        .host_str()
+        .ok_or_else(|| anyhow::anyhow!("the public address {issuer} has no host"))?
+        .to_owned();
+    let service = StreamableHttpService::new(
         || {
             let api_key = CURRENT_API_KEY
                 .try_with(String::clone)
                 .map_err(std::io::Error::other)?;
             Wanikani::new_with_key(api_key).map_err(std::io::Error::other)
         },
-        LocalSessionManager::default().into(),
-        StreamableHttpServerConfig::default(),
+        Arc::new(NeverSessionManager::default()),
+        StreamableHttpServerConfig::default()
+            .with_legacy_session_mode(false)
+            .with_json_response(true)
+            .with_allowed_hosts([public_host, "localhost".to_owned(), "127.0.0.1".to_owned()]),
     );
     let mcp_routes = Router::new()
         .nest_service("/mcp", service)
