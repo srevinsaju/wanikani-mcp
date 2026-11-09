@@ -1,0 +1,20 @@
+{
+  "name": "wanikani-mcp-ui",
+  "private": true,
+  "type": "module",
+  "description": "MCP Apps views for wanikani-mcp, built into single-file HTML that the server embeds",
+  "scripts": {
+    "build": "INPUT=subject vite build && INPUT=subjects vite build && INPUT=progress vite build",
+    "preview": "vite --config vite.preview.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@modelcontextprotocol/ext-apps": "^2.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3",
+    "vite-plugin-singlefile": "^2.3.3"
+  }
+}
