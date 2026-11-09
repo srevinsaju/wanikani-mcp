@@ -1,9 +1,18 @@
+# The ui:// views: single-file HTML that the server embeds at compile time.
+FROM docker.io/oven/bun:1.4.2 AS views
+WORKDIR /build/ui
+COPY ui/package.json ui/bun.lock ./
+RUN bun install --frozen-lockfile
+COPY ui ./
+RUN bun run build
+
 FROM rust:1.92-alpine AS builder
 WORKDIR /build
 RUN apk add --no-cache musl-dev pkgconf openssl-dev openssl-libs-static
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY templates ./templates
+COPY --from=views /build/ui/dist ./ui/dist
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 FROM scratch

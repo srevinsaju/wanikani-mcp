@@ -2,16 +2,22 @@ mod mcp;
 mod output;
 mod subjects;
 mod user;
+mod views;
 
 use crate::Error;
 use ratelimit::Ratelimiter;
 use rmcp::handler::server::tool::ToolRouter;
-use rmcp::model::{Implementation, ServerCapabilities, ServerConfig};
-use rmcp::{ServerHandler, tool_handler};
+use rmcp::model::{
+    Implementation, ListResourcesResult, PaginatedRequestParams, ReadResourceRequestParams,
+    ReadResourceResponse, ServerCapabilities, ServerConfig,
+};
+use rmcp::service::RequestContext;
+use rmcp::{ErrorData, RoleServer, ServerHandler, tool_handler};
 use serde::de::DeserializeOwned;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 use std::time::Duration;
+use views::View;
 use wanisabi::client::Client;
 use wanisabi::model::subject::Subject;
 use wanisabi::response::{CollectionResponse, IdResponse};
@@ -131,11 +137,36 @@ impl WanikaniInner {
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for Wanikani {
     fn get_info(&self) -> ServerConfig {
-        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
-            .with_server_info(Implementation::new(
-                env!("CARGO_PKG_NAME"),
-                env!("CARGO_PKG_VERSION"),
-            ))
-            .with_instructions(self.instructions())
+        ServerConfig::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .build(),
+        )
+        .with_server_info(Implementation::new(
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION"),
+        ))
+        .with_instructions(self.instructions())
+    }
+
+    async fn list_resources(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourcesResult, ErrorData> {
+        Ok(ListResourcesResult::with_all_items(View::resources()))
+    }
+
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResponse, ErrorData> {
+        View::read(&request.uri)
+            .map(ReadResourceResponse::from)
+            .ok_or_else(|| {
+                ErrorData::resource_not_found(format!("no view at {}", request.uri), None)
+            })
     }
 }

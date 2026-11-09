@@ -2,6 +2,7 @@ use crate::wanikani::Wanikani;
 use crate::wanikani::output::{
     FindNewKanjiOutput, FindNewVocabularyOutput, GetSubjectsOutput, ProgressOutput, reply,
 };
+use crate::wanikani::views::View;
 use rmcp::handler::server::tool::schema_for_output;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
@@ -42,6 +43,7 @@ pub struct VocabularyListRequest {
 impl Wanikani {
     #[tool(
         description = "Get the user's level information: progress on the current level, lessons and reviews available now, reviews in the next 24 hours, and SRS stage counts",
+        meta = View::Progress.tool_meta(),
         output_schema = schema_for_output::<ProgressOutput>()
     )]
     async fn get_level_info(&self) -> Result<CallToolResult, McpError> {
@@ -54,6 +56,7 @@ impl Wanikani {
 
     #[tool(
         description = "Get subject by its subject id. A subject is a i64 identifier which can be used for kanji, radicals or vocabulary",
+        meta = View::Subject.tool_meta(),
         output_schema = schema_for_output::<GetSubjectsOutput>()
     )]
     async fn get_subject_by_id(
@@ -69,6 +72,7 @@ impl Wanikani {
 
     #[tool(
         description = "Get multiple kanji subjects by its characters. Returns the level, onyomi, kunyomi, reading mnemonic and meaning mnemonics, and radicals that compose the kanji. Characters WaniKani does not teach are listed in not_found",
+        meta = View::Subject.tool_meta(),
         output_schema = schema_for_output::<GetSubjectsOutput>()
     )]
     async fn get_kanji_by_character(
@@ -84,6 +88,7 @@ impl Wanikani {
 
     #[tool(
         description = "Get vocabulary subject by its phrase. Returns the readings, meaning mnemonics and example sentences, and kanji that compose the vocabulary",
+        meta = View::Subject.tool_meta(),
         output_schema = schema_for_output::<GetSubjectsOutput>()
     )]
     async fn get_vocabulary_by_phrase(
@@ -99,6 +104,7 @@ impl Wanikani {
 
     #[tool(
         description = "Find new kanji and their wanikani levels from a given sentence that the user has not learned yet",
+        meta = View::Subjects.tool_meta(),
         output_schema = schema_for_output::<FindNewKanjiOutput>()
     )]
     async fn find_new_kanji_from_sentence(
@@ -114,6 +120,7 @@ impl Wanikani {
 
     #[tool(
         description = "Find new vocabulary and their wanikani levels from a list of words/phrases that the user has not learned yet. Phrases WaniKani does not teach are listed in not_found",
+        meta = View::Subjects.tool_meta(),
         output_schema = schema_for_output::<FindNewVocabularyOutput>()
     )]
     async fn find_new_vocabulary(
