@@ -267,8 +267,8 @@
                 <p class="subtitle">authenticate your wanikani account</p>
 
                 <div class="client-info">
-                    <p><strong>client:</strong> <code>{{ client_id }}</code></p>
-                    <p style="margin-bottom: 0;"><strong>scope:</strong> <code>{{ scope }}</code></p>
+                    <p><strong>client:</strong> <code>{{ client }}</code></p>
+                    <p style="margin-bottom: 0;"><strong>redirects to:</strong> <code>{{ redirect_host }}</code></p>
                 </div>
 
                 <div class="info-box">
@@ -279,14 +279,9 @@
                     <label for="api_key">wanikani api key *</label>
                     <input type="password" id="api_key" name="api_key" placeholder="paste your api key here" required>
 
-                    <input type="hidden" name="response_type" value="{{ response_type }}">
-                    <input type="hidden" name="client_id" value="{{ client_id }}">
-                    <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
-                    <input type="hidden" name="state" value="{{ state }}">
-                    <input type="hidden" name="code_challenge" value="{{ code_challenge }}">
-                    <input type="hidden" name="code_challenge_method" value="{{ code_challenge_method }}">
-                    <input type="hidden" name="scope" value="{{ scope }}">
-                    <input type="hidden" name="resource" value="{{ resource }}">
+                    {% for (name, value) in params %}
+                    <input type="hidden" name="{{ name }}" value="{{ value }}">
+                    {% endfor %}
 
                     <button type="submit" id="submitBtn">authorize</button>
                 </form>
@@ -294,7 +289,7 @@
 
             <div id="successState" class="success-state hidden">
                 <h2>authorization successful</h2>
-                <p>you may now open <span class="client-name">{{ client_id }}</span></p>
+                <p>you may now open <span class="client-name">{{ client }}</span></p>
                 <div class="redirect-notice">
                     <span class="spinner"></span>
                     redirecting...
