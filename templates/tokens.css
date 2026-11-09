@@ -1,0 +1,127 @@
+/* Copied from simkl-mcp so both servers share one look:
+   https://github.com/srevinsaju/simkl-mcp/blob/feeafe4614a32d2b728ccf53dd42c02f4bc9623a/crates/simkl-mcp/templates/tokens.css
+   Keep the section up to "WaniKani" identical to that file; change it there
+   first. Everything after it is ours. */
+
+/* Design tokens shared by the sign-in pages (base.html includes this file)
+   and the ui:// views (ui/src/style.css imports it).
+
+   Names follow the MCP Apps host style variables
+   (https://github.com/modelcontextprotocol/ext-apps, McpUiStyleVariableKey).
+   Inside Claude the host sets them on the root element, which overrides the
+   values here; the sign-in pages open in a plain browser and use these.
+   --accent and --accent-text are ours: the host has no brand color. */
+
+:root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f6f7;
+    --color-background-tertiary: #eceef0;
+    --color-text-primary: #1f2428;
+    --color-text-secondary: #5f6870;
+    --color-text-success: #2f7d4f;
+    --color-text-warning: #a15c07;
+    --color-text-danger: #b3261e;
+    --color-border-primary: #e2e5e8;
+    --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "Fira Code", ui-monospace, "SF Mono", Menlo, monospace;
+    --border-radius-sm: 6px;
+    --border-radius-md: 10px;
+    --border-radius-lg: 14px;
+    --shadow-md: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.06);
+
+    --accent: #2c3e50;
+    --accent-text: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --color-background-primary: #262624;
+        --color-background-secondary: #1f1e1d;
+        --color-background-tertiary: #30302e;
+        --color-text-primary: #ecebe6;
+        --color-text-secondary: #a6a49c;
+        --color-text-success: #7cc49a;
+        --color-text-warning: #e2a85a;
+        --color-text-danger: #f2948c;
+        --color-border-primary: #3a3936;
+        --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+        --accent: #a9c1d9;
+        --accent-text: #14212d;
+        color-scheme: dark;
+    }
+}
+
+:root[data-theme="dark"] {
+    --color-background-primary: #262624;
+    --color-background-secondary: #1f1e1d;
+    --color-background-tertiary: #30302e;
+    --color-text-primary: #ecebe6;
+    --color-text-secondary: #a6a49c;
+    --color-text-success: #7cc49a;
+    --color-text-warning: #e2a85a;
+    --color-text-danger: #f2948c;
+    --color-border-primary: #3a3936;
+    --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+    --accent: #a9c1d9;
+    --accent-text: #14212d;
+    color-scheme: dark;
+}
+
+/* WaniKani: one colour per subject type and per SRS stage, after the site's
+   own (https://www.wanikani.com). Used for subject tiles, mnemonic highlights
+   and progress bars only; --accent stays the neutral colour for things you
+   can act on, so kanji pink never reads as a button. */
+
+:root {
+    --font-ja: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+
+    --wk-radical: #00aaff;
+    --wk-radical-edge: #0069ac;
+    --wk-kanji: #ff00aa;
+    --wk-kanji-edge: #b9007b;
+    --wk-vocabulary: #aa00ff;
+    --wk-vocabulary-edge: #8600b9;
+    --wk-on-type: #ffffff;
+
+    --wk-radical-mark: #cbebff;
+    --wk-radical-mark-text: #0069ac;
+    --wk-kanji-mark: #ffd4f1;
+    --wk-kanji-mark-text: #b9007b;
+    --wk-vocabulary-mark: #ecccff;
+    --wk-vocabulary-mark-text: #8600b9;
+    --wk-reading-mark: #cad0d6;
+    --wk-reading-mark-text: #333333;
+
+    --wk-apprentice: #dd0093;
+    --wk-guru: #882d9e;
+    --wk-master: #294ddb;
+    --wk-enlightened: #0093dd;
+    --wk-burned: #434343;
+    --wk-locked: var(--color-background-tertiary);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --wk-radical-mark: rgb(0 170 255 / 0.22);
+        --wk-radical-mark-text: #7fd0ff;
+        --wk-kanji-mark: rgb(255 0 170 / 0.22);
+        --wk-kanji-mark-text: #ff8fd6;
+        --wk-vocabulary-mark: rgb(170 0 255 / 0.25);
+        --wk-vocabulary-mark-text: #d49aff;
+        --wk-reading-mark: rgb(202 208 214 / 0.18);
+        --wk-reading-mark-text: var(--color-text-primary);
+        --wk-burned: #8a8a86;
+    }
+}
+
+:root[data-theme="dark"] {
+    --wk-radical-mark: rgb(0 170 255 / 0.22);
+    --wk-radical-mark-text: #7fd0ff;
+    --wk-kanji-mark: rgb(255 0 170 / 0.22);
+    --wk-kanji-mark-text: #ff8fd6;
+    --wk-vocabulary-mark: rgb(170 0 255 / 0.25);
+    --wk-vocabulary-mark-text: #d49aff;
+    --wk-reading-mark: rgb(202 208 214 / 0.18);
+    --wk-reading-mark-text: var(--color-text-primary);
+    --wk-burned: #8a8a86;
+}
