@@ -24,31 +24,26 @@ Do not grant any write permissions (leave all boxes unchecked).
 ```
 
 ### Local
-```bash
+Build the binary from a clone (see [Building](#building)): the views in `ui/` are embedded at compile time and not checked in, so `cargo install --git` cannot build it.
+
+```json
 {
   "mcpServers": {
     "wanikani": {
-      "command": "cargo",
-      "args": [
-        "run", "--release", "--git", "https://github.com/srevinsaju/wanikani-mcp.git",
-        "--branch", "main", "--",
-        "--mode", "stdio",
-        "--api-key", "YOUR_WANIKANI_API_KEY"
-      ]
+      "command": "/path/to/wanikani-mcp/target/release/wanikani-mcp",
+      "args": ["--mode", "stdio", "--api-key", "YOUR_WANIKANI_API_KEY"]
     }
   }
 }
 ```
 
+### Remote server
 
-### Remote SSE Server
-
-On claude desktop, go to `Settings > Connectors` and add a new server.
+On Claude, go to `Settings > Connectors`, add a custom connector with the server's `/mcp` URL (`https://<your-host>/mcp`), and sign in by pasting your API key when asked.
 
 ![img.png](docs/claude_desktop_connector.png)
 
-This should also work on Claude Mobile.
-
+This should also work on Claude Mobile, and with any MCP client that supports remote servers with OAuth: the server supports Dynamic Client Registration, so there is nothing to configure.
 
 ## Tools
 
@@ -63,8 +58,9 @@ Hosts that support [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) 
 
 ## Authentication
 
-This server implements oauth2 with a custom flow. When using the SSE mode, the wanikani api key is embedded directly in the jwt token, which may be against best practices.
-For local usage with stdio mode, the api key is passed directly via command line argument.
+In `sse` mode (the default) the server is its own OAuth 2.1 authorization server for `/mcp`. Signing in asks for a WaniKani API key, which is sealed with `VAULT_KEY` and stored in the SQLite database; the client only ever holds an access token and a refresh token. `/mcp` is stateless: every request is served with the API key of the token it carries.
+
+In `stdio` mode the API key is passed directly with `--api-key` (or `WANIKANI_API_KEY`).
 
 ## Building
 
@@ -72,13 +68,43 @@ The MCP Apps views in [`ui/`](ui) are embedded into the binary at compile time, 
 
 ```bash
 nix develop            # Rust, Bun and the rest of the toolchain
-cd ui && bun install && bun run build && cd ..
-cargo build --release
+cd ui && bun install --frozen-lockfile && bun run build && cd ..
+cargo build --release --locked
 ```
+
+The [`Dockerfile`](Dockerfile) does both:
 
 ```bash
 docker build -t wanikani-mcp .
 ```
+
+## Self-hosting
+
+The server is one binary: the MCP endpoint at `/mcp`, the OAuth endpoints, a setup page at `/`, and `/health`. It keeps its state in one SQLite file, so run a single instance.
+
+| Variable | Flag | Value |
+|---|---|---|
+| `VAULT_KEY` | `--vault-key` | 32 bytes in base64, from `openssl rand -base64 32`. Required in `sse` mode. Changing it signs everyone out. |
+| `PUBLIC_ADDRESS` | `--public-address` | where clients reach the server, e.g. `https://wanikani.example.com`. Default `http://127.0.0.1:3000`. |
+| `BIND_ADDRESS` | `--bind-address` | default `127.0.0.1:3000`; `0.0.0.0:8080` in the image. |
+| `DATABASE` | `--database` | default `sqlite://wanikani-mcp.db`; `sqlite:///data/wanikani-mcp.db` in the image. |
+| `TOKEN_EXPIRATION` | `--token-expiration` | access token lifetime in seconds, default `3600`. Refresh tokens rotate on use. |
+| `MODE` | `--mode` | `sse` (default) or `stdio`. |
+| `WANIKANI_API_KEY` | `--api-key` | the API key, in `stdio` mode only. |
+| `RUST_LOG` | | log filter; `wanikani_mcp=info` in the image. |
+
+The image runs as uid/gid `10001` and writes only to `/data` (the database and its `-wal`/`-shm` files), so the root filesystem can be read-only. `/data` must be writable by uid `10001`.
+
+```bash
+docker volume create wanikani-mcp
+docker run --rm -p 8080:8080 \
+  -v wanikani-mcp:/data \
+  -e VAULT_KEY="$(openssl rand -base64 32)" \
+  -e PUBLIC_ADDRESS=http://localhost:8080 \
+  wanikani-mcp
+```
+
+Keep the `VAULT_KEY` you generate: a new one on the next start signs everyone out.
 
 ## license
 
