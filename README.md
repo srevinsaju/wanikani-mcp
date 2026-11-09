@@ -59,6 +59,8 @@ This should also work on Claude Mobile.
 - `find_new_kanji_from_sentence` - find new kanji from a sentence that user hasn't learned
 - `find_new_vocabulary` - find new vocabulary from a list of phrases that user hasn't learned
 
+Hosts that support [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) show each result in a view from [`ui/`](ui): `ui://wanikani/subject`, `ui://wanikani/subjects` and `ui://wanikani/progress`.
+
 ## Authentication
 
 This server implements oauth2 with a custom flow. When using the SSE mode, the wanikani api key is embedded directly in the jwt token, which may be against best practices.
@@ -66,7 +68,11 @@ For local usage with stdio mode, the api key is passed directly via command line
 
 ## Building
 
+The MCP Apps views in [`ui/`](ui) are embedded into the binary at compile time, so build them before `cargo build`:
+
 ```bash
+nix develop            # Rust, Bun and the rest of the toolchain
+cd ui && bun install && bun run build && cd ..
 cargo build --release
 ```
 
