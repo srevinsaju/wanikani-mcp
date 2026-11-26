@@ -1,5 +1,6 @@
 //! The axum router for `sse` mode: `/mcp`, the OAuth endpoints, the protected
-//! resource metadata (RFC 9728), the setup page and `/health`.
+//! resource metadata (RFC 9728), the landing page with its icon and link
+//! preview image, and `/health`.
 //!
 //! Every `/mcp` request needs a bearer token our authorization server issued
 //! for the `/mcp` resource. Its subject is a vault connection, whose WaniKani
@@ -15,7 +16,7 @@ use std::sync::Arc;
 use askama::Template;
 use axum::Router;
 use axum::extract::{Request, State};
-use axum::http::header::{AUTHORIZATION, WWW_AUTHENTICATE};
+use axum::http::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::{Next, from_fn_with_state};
 use axum::response::{Html, IntoResponse, Json, Response};
@@ -45,7 +46,8 @@ struct Mcp {
     metadata_url: Arc<str>,
 }
 
-/// `templates/setup.html`: how to connect a client, and the tools it gets.
+/// `templates/setup.html`, the landing page: how to connect a client, and
+/// the tools it gets.
 #[derive(Template)]
 #[template(path = "setup.html")]
 struct SetupPage {
@@ -114,6 +116,14 @@ pub fn router(issuer: &str, resource: &str, auth: Arc<Auth>) -> anyhow::Result<R
     Ok(Router::new()
         .route("/", setup.clone())
         .route("/setup", setup)
+        .route(
+            "/icon.png",
+            get(|| async { png(include_bytes!("../assets/icon.png")) }),
+        )
+        .route(
+            "/og.png",
+            get(|| async { png(include_bytes!("../assets/og.png")) }),
+        )
         .route("/health", get(|| async { "ok" }))
         .route(
             &metadata_path,
@@ -158,6 +168,18 @@ async fn authenticate(State(mcp): State<Mcp>, request: Request, next: Next) -> R
         }
     };
     CURRENT_API_KEY.scope(api_key, next.run(request)).await
+}
+
+/// A PNG from `assets/` (rendered by `assets/render.sh`), cached for a day.
+fn png(bytes: &'static [u8]) -> Response {
+    (
+        [
+            (CONTENT_TYPE, "image/png"),
+            (CACHE_CONTROL, "public, max-age=86400"),
+        ],
+        bytes,
+    )
+        .into_response()
 }
 
 fn bearer(request: &Request) -> Option<String> {
