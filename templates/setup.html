@@ -1,13 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}wanikani-mcp{% endblock %}
+{% block title %}WaniKani MCP · your WaniKani data in Claude{% endblock %}
+
+{% block head %}
+    {%- let description = "Your WaniKani levels, reviews and kanji, in Claude. An unofficial MCP server for your WaniKani data." %}
+    {%- let image_alt = "A pink W tile above the words WaniKani MCP: your WaniKani levels, reviews and kanji, in Claude." %}
+    <meta name="description" content="{{ description }}">
+    <link rel="canonical" href="{{ public_address }}/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="WaniKani MCP">
+    <meta property="og:url" content="{{ public_address }}/">
+    <meta property="og:title" content="WaniKani MCP · your WaniKani data in Claude">
+    <meta property="og:description" content="{{ description }}">
+    <meta property="og:image" content="{{ public_address }}/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{{ image_alt }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="WaniKani MCP · your WaniKani data in Claude">
+    <meta name="twitter:description" content="{{ description }}">
+    <meta name="twitter:image" content="{{ public_address }}/og.png">
+    <meta name="twitter:image:alt" content="{{ image_alt }}">
+{%- endblock %}
 
 {% block style %}
         .sheet { max-width: 640px; padding: 28px 28px 22px; }
+        .logo { justify-self: center; width: 64px; height: 64px; border-radius: 15px; }
         section { display: grid; gap: 10px; }
         h2 { font-size: 15px; font-weight: 600; }
         section p { font-size: 14px; color: var(--color-text-secondary); }
-        pre {
+        pre, .endpoint code {
             font: 12.5px/1.5 var(--font-mono);
             padding: 12px 14px;
             border-radius: var(--border-radius-md);
@@ -15,31 +37,36 @@
             background: var(--color-background-secondary);
             overflow-x: auto;
         }
+        .endpoint { display: flex; gap: 8px; }
+        .endpoint code { flex: 1; min-width: 0; white-space: nowrap; }
+        .endpoint button { flex: none; padding: 0 16px; }
         .scopes code { font: 500 13px var(--font-mono); }
         .scopes li { grid-template-columns: 1fr; }
 {% endblock %}
 
 {% block content %}
-<div class="apps" aria-hidden="true">
-    <div class="app wanikani">W</div>
-</div>
+<img class="logo" src="/icon.png" alt="" width="64" height="64">
 
-<h1>wanikani-mcp</h1>
-<p class="sub">An unofficial <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP</a> server for your <a href="https://www.wanikani.com" target="_blank" rel="noopener">WaniKani</a> data. Not affiliated with WaniKani or Tofugu.</p>
+<h1>WaniKani MCP</h1>
+<p class="sub">Your <a href="https://www.wanikani.com" target="_blank" rel="noopener">WaniKani</a> levels, reviews and kanji, in Claude. Unofficial; not affiliated with WaniKani or Tofugu.</p>
 
 <section>
-    <h2>Use the hosted server</h2>
-    <p>Add a connector with this URL. Your app asks you to sign in with a WaniKani API token.</p>
-    <pre>{{ public_address }}/mcp</pre>
-    <p>Or, in a client that reads a JSON config:</p>
-    <pre>{
-  "mcpServers": {
-    "wanikani": {
-      "type": "http",
-      "url": "{{ public_address }}/mcp"
-    }
-  }
-}</pre>
+    <h2>Use it from Claude</h2>
+    <div class="endpoint">
+        <code id="endpoint">{{ public_address }}/mcp</code>
+        <button type="button" data-copy="endpoint">Copy</button>
+    </div>
+    <p>Add it as a custom connector in Claude and sign in with a WaniKani API token when asked.</p>
+    <p>The tools read your level progress, upcoming reviews, and the kanji and vocabulary you have learned. They never change anything on WaniKani.</p>
+</section>
+
+<section>
+    <h2>Tools</h2>
+    <ul class="scopes">
+        {% for tool in tools %}
+        <li><span><code>{{ tool.name }}</code><small>{{ tool.description }}</small></span></li>
+        {% endfor %}
+    </ul>
 </section>
 
 <section>
@@ -64,14 +91,16 @@
 }</pre>
 </section>
 
-<section>
-    <h2>Tools</h2>
-    <ul class="scopes">
-        {% for tool in tools %}
-        <li><span><code>{{ tool.name }}</code><small>{{ tool.description }}</small></span></li>
-        {% endfor %}
-    </ul>
-</section>
+<p class="foot">Part of <a href="https://xwx.cat">xwx.cat</a></p>
 
-<p class="foot">{{ public_address }}</p>
+<script>
+    for (const button of document.querySelectorAll("button[data-copy]")) {
+        button.addEventListener("click", async () => {
+            const text = document.getElementById(button.dataset.copy).textContent;
+            await navigator.clipboard.writeText(text);
+            button.textContent = "Copied";
+            setTimeout(() => (button.textContent = "Copy"), 1500);
+        });
+    }
+</script>
 {% endblock %}

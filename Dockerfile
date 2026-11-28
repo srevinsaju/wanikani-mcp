@@ -13,8 +13,9 @@ WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY src src
 COPY templates templates
+COPY assets assets
 COPY --from=views /src/ui/dist ui/dist
-# Migrations (src/auth/migrations), askama templates and the views compile
+# Migrations (src/auth/migrations), askama templates, assets/*.png and the views compile
 # into the binary, so it is the only thing the runtime image needs.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \

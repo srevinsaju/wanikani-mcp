@@ -80,7 +80,7 @@ docker build -t wanikani-mcp .
 
 ## Self-hosting
 
-The server is one binary: the MCP endpoint at `/mcp`, the OAuth endpoints, a setup page at `/`, and `/health`. It keeps its state in one SQLite file, so run a single instance.
+The server is one binary: the MCP endpoint at `/mcp`, the OAuth endpoints, a landing page at `/` (with `/icon.png` and its link preview image `/og.png`, rendered from `assets/*.svg` by `assets/render.sh`), and `/health`. It keeps its state in one SQLite file, so run a single instance.
 
 | Variable | Flag | Value |
 |---|---|---|

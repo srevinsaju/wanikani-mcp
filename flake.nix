@@ -19,8 +19,12 @@
             rustfmt
             rust-analyzer
             gh
+            # assets/render.sh
+            resvg
           ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.libiconv ];
 
+          # The fonts the assets/*.svg sources use, for assets/render.sh.
+          ASSET_FONT_DIRS = "${pkgs.ibm-plex}/share/fonts ${pkgs.fira-code}/share/fonts";
           RUST_LOG = "wanikani_mcp=debug,tower_http=info";
           shellHook = ''
             echo "wanikani-mcp dev shell: bun $(bun --version), rust $(rustc --version | cut -d' ' -f2)"
